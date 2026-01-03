@@ -1,0 +1,11 @@
+python-dotenv
+azure-identity
+openai
+streamlit
+langgraph
+langchain-openai
+langchain-core
+tiktoken
+numpy
+sentence-transformers  # For Nomic local embeddings (optional)
+einops  # Required by Nomic model

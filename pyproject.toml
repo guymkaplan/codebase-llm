@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "code_assistant"
+version = "0.1.0"
+description = "Research LLM Agent Exercise"
+requires-python = ">=3.9"
+dependencies = [
+    "python-dotenv",
+    "azure-identity",
+    "openai",
+    "streamlit",
+    "langgraph",
+    "langchain-openai",
+    "langchain-core",
+    "tiktoken",
+    "numpy",
+    "sentence-transformers",
+    "einops"
+]
+
+[tool.setuptools.packages.find]
+include = ["code_assistant*"]
