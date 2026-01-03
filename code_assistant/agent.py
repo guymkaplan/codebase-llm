@@ -2,12 +2,18 @@
 Agent implementation for Azure OpenAI with Azure AD authentication
 """
 import os
+import sys
 import time
 from azure.identity import get_bearer_token_provider, EnvironmentCredential
 from langchain_openai import AzureChatOpenAI
 from .prompts import MAIN_AGENT_SYSTEM_PROMPT
 from .tools import get_repo_documentation, list_available_repositories, search_keyword, semantic_file_search, read_code
 from .tools.semantic_search import get_last_semantic_search_metadata
+
+
+def log(message):
+    """Print to stderr to avoid buffering issues"""
+    print(message, file=sys.stderr, flush=True)
 
 
 class CodeAssistantAgent:
@@ -216,8 +222,14 @@ class CodeAssistantAgent:
         while iteration < max_iterations:
             iteration += 1
             
+            log(f"  🔄 Iteration {iteration} - Calling LLM...")
+            llm_start = time.time()
+            
             # Get response from LLM (with tools)
             response = self.llm_with_tools.invoke(messages)
+            
+            llm_time = time.time() - llm_start
+            log(f"  ⏱️  LLM response received in {llm_time:.2f}s")
             
             # Add to trace
             if response.content:
@@ -225,6 +237,8 @@ class CodeAssistantAgent:
             
             # Check if the model wants to use tools
             if hasattr(response, 'tool_calls') and response.tool_calls:
+                log(f"  🔧 {len(response.tool_calls)} tool call(s) requested")
+                
                 # Add the assistant's response (with tool calls) to messages
                 messages.append(response)
                 
@@ -232,6 +246,8 @@ class CodeAssistantAgent:
                 for tool_call in response.tool_calls:
                     tool_name = tool_call["name"]
                     tool_args = tool_call["args"]
+                    
+                    log(f"    └─ Executing: {tool_name}")
                     
                     # Start timing
                     start_time = time.time()
@@ -252,6 +268,8 @@ class CodeAssistantAgent:
                     
                     # Calculate execution time
                     execution_time = time.time() - start_time
+                    
+                    log(f"       ⏱️  Completed in {execution_time:.2f}s")
                     
                     # Store tool call info
                     tool_calls_info.append({

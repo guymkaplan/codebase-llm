@@ -2,14 +2,26 @@ import streamlit as st
 from dotenv import load_dotenv
 from code_assistant.agent import CodeAssistantAgent
 from datetime import datetime
+import sys
+
+def log(message):
+    """Print to stderr to avoid buffering issues with Streamlit"""
+    print(message, file=sys.stderr, flush=True)
+
+log("=" * 80)
+log("🚀 STREAMLIT APP INITIALIZING")
+log("=" * 80)
 
 load_dotenv(override=True)
+log("✅ Environment variables loaded")
 
 st.set_page_config(
     page_title="Code Repository Assistant",
     page_icon="🤖",
     layout="wide"
 )
+
+log("✅ Streamlit page config set")
 
 st.title("🤖 Code Repository Assistant")
 st.markdown("Ask questions about code repositories using Azure OpenAI")
@@ -110,9 +122,15 @@ Total Tool Calls: {len(tool_calls)}
 @st.cache_resource
 def create_agent():
     """Initialize the Code Assistant Agent"""
+    log("\n" + "=" * 80)
+    log("🤖 CREATING AGENT")
+    log("=" * 80)
     try:
-        return CodeAssistantAgent()
+        agent = CodeAssistantAgent()
+        log("✅ Agent created successfully")
+        return agent
     except ValueError as e:
+        log(f"❌ Agent creation failed: {str(e)}")
         st.error(f"Configuration error: {str(e)}")
         st.stop()
 
@@ -222,6 +240,10 @@ for message in st.session_state.messages:
 
 # Handle user input
 if prompt := st.chat_input("Ask a question about the code..."):
+    log("\n" + "=" * 80)
+    log(f"📝 USER INPUT RECEIVED: {prompt[:100]}{'...' if len(prompt) > 100 else ''}")
+    log("=" * 80)
+    
     # Add user message to chat
     st.session_state.messages.append({"role": "user", "content": prompt})
     
@@ -232,13 +254,20 @@ if prompt := st.chat_input("Ask a question about the code..."):
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             try:
+                log("🤖 Initializing agent...")
                 agent = create_agent()
+                
+                log(f"🔄 Processing query with {len(st.session_state.messages) - 1} messages in history")
                 
                 # Use chat_with_history to maintain conversation context
                 result = agent.chat_with_history_and_tools_info(
                     message=prompt,
                     history=st.session_state.messages[:-1]  # Exclude the current message
                 )
+                
+                log(f"✅ Agent response received")
+                log(f"   - Iterations: {result.get('iterations', 0)}")
+                log(f"   - Tool calls: {len(result.get('tool_calls', []))}")
                 
                 # Display the final response
                 assistant_message = result["response"]
@@ -249,6 +278,7 @@ if prompt := st.chat_input("Ask a question about the code..."):
                 answer_match = re.search(r'<answer>(.*?)</answer>', assistant_message, re.DOTALL)
                 
                 if answer_match:
+                    log("📄 Response contains <answer> tags")
                     # Extract answer and display prominently
                     answer_content = answer_match.group(1).strip()
                     st.markdown(answer_content)
@@ -261,6 +291,7 @@ if prompt := st.chat_input("Ask a question about the code..."):
                         st.markdown(assistant_message)
                 else:
                     # No answer tags - show everything
+                    log("📄 Response without <answer> tags")
                     if assistant_message:
                         st.markdown(assistant_message)
                     else:
@@ -275,6 +306,8 @@ if prompt := st.chat_input("Ask a question about the code..."):
                 if result.get("tool_calls"):
                     iterations = result.get("iterations", 1)
                     total_time = sum(tc.get("execution_time", 0) for tc in result["tool_calls"])
+                    
+                    log(f"🔧 Displaying {len(result['tool_calls'])} tool calls (total time: {total_time:.2f}s)")
                     
                     # Add download button for current flow
                     flow_dump = generate_flow_dump(
@@ -341,8 +374,14 @@ if prompt := st.chat_input("Ask a question about the code..."):
                     "full_trace": result.get("full_trace", "")
                 })
                 
+                log(f"✅ Response stored in session state")
+                log(f"   - Total messages in history: {len(st.session_state.messages)}")
+                log("=" * 80 + "\n")
+                
             except Exception as e:
                 error_message = f"Error: {str(e)}"
+                log(f"❌ ERROR: {error_message}")
+                log("=" * 80 + "\n")
                 st.error(error_message)
                 st.session_state.messages.append({"role": "assistant", "content": error_message})
 
@@ -353,11 +392,15 @@ with st.sidebar:
     st.info("✅ Using Azure AD authentication (no API key needed)")
     
     if st.button("Clear Chat History"):
+        log("\n🗑️  CLEARING CHAT HISTORY")
         st.session_state.messages = []
+        log(f"✅ Chat history cleared\n")
         st.rerun()
     
     if st.button("Clear Agent Cache"):
+        log("\n🗑️  CLEARING AGENT CACHE")
         st.cache_resource.clear()
+        log(f"✅ Agent cache cleared\n")
         st.success("Agent cache cleared! Reload the page to reinitialize.")
     
     st.markdown("---")
