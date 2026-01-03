@@ -9,7 +9,7 @@ SEMANTIC_SEARCH_CONFIG = {
     "chunk_overlap": 100,  # Number of tokens to overlap between chunks
     
     # Search configuration
-    "max_files_to_search": 30,  # Maximum number of files to process
+    "max_files_to_search": 20,  # Maximum number of files to process
     "top_k_results": 10,  # Number of top results to return to orchestrator agent
     "max_results_with_lines": 10,  # Maximum file paths with line numbers to return
     
